@@ -47,6 +47,7 @@ extern "C" {
 #include "lv_objx/lv_ta.h"
 #include "lv_objx/lv_win.h"
 #include "lv_objx/lv_tabview.h"
+#include "lv_objx/lv_tileview.h"
 #include "lv_objx/lv_mbox.h"
 #include "lv_objx/lv_gauge.h"
 #include "lv_objx/lv_lmeter.h"
@@ -55,6 +56,7 @@ extern "C" {
 #include "lv_objx/lv_arc.h"
 #include "lv_objx/lv_preload.h"
 #include "lv_objx/lv_calendar.h"
+#include "lv_objx/lv_spinbox.h"
 
 /*********************
  *      DEFINES

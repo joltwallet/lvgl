@@ -76,6 +76,7 @@ typedef struct
 enum {
     LV_TA_STYLE_BG,
     LV_TA_STYLE_SB,
+    LV_TA_STYLE_EDGE_FLASH,
     LV_TA_STYLE_CURSOR,
 };
 typedef uint8_t lv_ta_style_t;
@@ -204,6 +205,26 @@ static inline void lv_ta_set_sb_mode(lv_obj_t * ta, lv_sb_mode_t mode)
 }
 
 /**
+ * Enable the scroll propagation feature. If enabled then the Text area will move its parent if there is no more space to scroll.
+ * @param ta pointer to a Text area
+ * @param en true or false to enable/disable scroll propagation
+ */
+static inline void lv_ta_set_scroll_propagation(lv_obj_t * ta, bool en)
+{
+    lv_page_set_scroll_propagation(ta, en);
+}
+
+/**
+ * Enable the edge flash effect. (Show an arc when the an edge is reached)
+ * @param page pointer to a Text Area
+ * @param en true or false to enable/disable end flash
+ */
+static inline void lv_ta_set_edge_flash(lv_obj_t * ta, bool en)
+{
+    lv_page_set_edge_flash(ta, en);
+}
+
+/**
  * Set a style of a text area
  * @param ta pointer to a text area object
  * @param type which style should be set
@@ -296,6 +317,26 @@ static inline lv_action_t lv_ta_get_action(lv_obj_t * ta)
 static inline lv_sb_mode_t lv_ta_get_sb_mode(const lv_obj_t * ta)
 {
     return lv_page_get_sb_mode(ta);
+}
+
+/**
+ * Get the scroll propagation property
+ * @param ta pointer to a Text area
+ * @return true or false
+ */
+static inline bool lv_ta_get_scroll_propagation(lv_obj_t * ta)
+{
+    return lv_page_get_scroll_propagation(ta);
+}
+
+/**
+ * Get the scroll propagation property
+ * @param ta pointer to a Text area
+ * @return true or false
+ */
+static inline bool lv_ta_get_edge_flash(lv_obj_t * ta)
+{
+    return lv_page_get_edge_flash(ta);
 }
 
 /**

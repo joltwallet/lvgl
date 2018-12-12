@@ -199,6 +199,10 @@ void lv_ta_add_char(lv_obj_t * ta, uint32_t c)
         return;
     }
 
+    /*Disable edge flash. If a new line was added it could show edge flash effect*/
+    bool edge_flash_en = lv_ta_get_edge_flash(ta);
+    lv_ta_set_edge_flash(ta, false);
+
     if(ext->pwd_mode != 0) pwd_char_hider(ta);  /*Make sure all the current text contains only '*'*/
     uint32_t letter_buf[2];
     letter_buf[0] = c;
@@ -237,6 +241,9 @@ void lv_ta_add_char(lv_obj_t * ta, uint32_t c)
 
     /*Move the cursor after the new character*/
     lv_ta_set_cursor_pos(ta, lv_ta_get_cursor_pos(ta) + 1);
+
+    /*Revert the original edge flash state*/
+    lv_ta_set_edge_flash(ta, edge_flash_en);
 }
 
 /**
@@ -259,6 +266,10 @@ void lv_ta_add_text(lv_obj_t * ta, const char * txt)
         }
         return;
     }
+
+    /*Disable edge flash. If a new line was added it could show edge flash effect*/
+    bool edge_flash_en = lv_ta_get_edge_flash(ta);
+    lv_ta_set_edge_flash(ta, false);
 
     /*Insert the text*/
     lv_label_ins_text(ext->label, ext->cursor.pos, txt);
@@ -293,6 +304,9 @@ void lv_ta_add_text(lv_obj_t * ta, const char * txt)
 
     /*Move the cursor after the new text*/
     lv_ta_set_cursor_pos(ta, lv_ta_get_cursor_pos(ta) + lv_txt_get_encoded_length(txt));
+
+    /*Revert the original edge flash state*/
+    lv_ta_set_edge_flash(ta, edge_flash_en);
 }
 
 /**
@@ -632,6 +646,9 @@ void lv_ta_set_style(lv_obj_t * ta, lv_ta_style_t type, lv_style_t * style)
         case LV_TA_STYLE_SB:
             lv_page_set_style(ta, LV_PAGE_STYLE_SB, style);
             break;
+        case LV_TA_STYLE_EDGE_FLASH:
+            lv_page_set_style(ta, LV_PAGE_STYLE_EDGE_FLASH, style);
+            break;
         case LV_TA_STYLE_CURSOR:
             ext->cursor.style = style;
             lv_obj_refresh_ext_size(lv_page_get_scrl(ta)); /*Refresh ext. size because of cursor drawing*/
@@ -750,21 +767,28 @@ uint16_t lv_ta_get_max_length(lv_obj_t * ta)
  */
 lv_style_t * lv_ta_get_style(const lv_obj_t * ta, lv_ta_style_t type)
 {
+    lv_style_t * style = NULL;
     lv_ta_ext_t * ext = lv_obj_get_ext_attr(ta);
 
     switch(type) {
         case LV_TA_STYLE_BG:
-            return lv_page_get_style(ta, LV_PAGE_STYLE_BG);
+            style = lv_page_get_style(ta, LV_PAGE_STYLE_BG);
+            break;
         case LV_TA_STYLE_SB:
-            return lv_page_get_style(ta, LV_PAGE_STYLE_SB);
+            style = lv_page_get_style(ta, LV_PAGE_STYLE_SB);
+            break;
+        case LV_TA_STYLE_EDGE_FLASH:
+            style = lv_page_get_style(ta, LV_PAGE_STYLE_EDGE_FLASH);
+            break;
         case LV_TA_STYLE_CURSOR:
-            return ext->cursor.style;
+            style = ext->cursor.style;
+            break;
         default:
-            return NULL;
+            style = NULL;
+            break;
     }
 
-    /*To avoid warning*/
-    return NULL;
+    return style;
 }
 
 /*=====================
@@ -1111,9 +1135,22 @@ static lv_res_t lv_ta_signal(lv_obj_t * ta, lv_signal_t sign, void * param)
         cur_type = lv_ta_get_cursor_type(ta);
         lv_ta_set_cursor_type(ta, cur_type | LV_CURSOR_HIDDEN);
     } else if(sign == LV_SIGNAL_FOCUS) {
+#if USE_LV_GROUP
         lv_cursor_type_t cur_type;
         cur_type = lv_ta_get_cursor_type(ta);
-        lv_ta_set_cursor_type(ta, cur_type & (~LV_CURSOR_HIDDEN));
+        lv_group_t * g = lv_obj_get_group(ta);
+        bool editing = lv_group_get_editing(g);
+        lv_hal_indev_type_t indev_type = lv_indev_get_type(lv_indev_get_act());
+
+        /*Encoders need special handling*/
+        if(indev_type == LV_INDEV_TYPE_ENCODER) {
+            if(editing) lv_ta_set_cursor_type(ta, cur_type & (~LV_CURSOR_HIDDEN));
+            else lv_ta_set_cursor_type(ta, cur_type | LV_CURSOR_HIDDEN);
+        }
+        else {
+            lv_ta_set_cursor_type(ta, cur_type & (~LV_CURSOR_HIDDEN));
+        }
+#endif
     }
     return res;
 }

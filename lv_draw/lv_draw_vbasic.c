@@ -445,7 +445,7 @@ void lv_vmap(const lv_area_t * cords_p, const lv_area_t * mask_p,
             lv_coord_t col;
             for(row = masked_a.y1; row <= masked_a.y2; row++) {
                 for(col = 0; col < map_useful_w; col++) {
-                    lv_color_t px_color = (lv_color_t) * ((lv_color_t *)&map_p[(uint32_t)col * px_size_byte]);
+                    lv_color_t px_color = *((lv_color_t *)&map_p[(uint32_t)col * px_size_byte]);
                     disp->driver.vdb_wr((uint8_t *)vdb_p->buf, vdb_width, col + masked_a.x1, row, px_color, opa);
                 }
                 map_p += map_width * px_size_byte;  /*Next row on the map*/
@@ -680,7 +680,7 @@ static inline lv_color_t color_mix_2_alpha(lv_color_t bg_color, lv_opa_t bg_opa,
         /*Save the parameters and the result. If they will be asked again don't compute again*/
         static lv_opa_t fg_opa_save = 0;
         static lv_opa_t bg_opa_save = 0;
-        static lv_color_t c = {0};
+        static lv_color_t c = {{0}};
 
         if(fg_opa != fg_opa_save || bg_opa != bg_opa_save) {
             fg_opa_save = fg_opa;

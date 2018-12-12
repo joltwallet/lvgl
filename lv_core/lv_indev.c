@@ -212,6 +212,12 @@ bool lv_indev_is_dragging(const lv_indev_t * indev)
  */
 void lv_indev_get_vect(const lv_indev_t * indev, lv_point_t * point)
 {
+    if(indev == NULL) {
+        point->x = 0;
+        point->y = 0;
+        return;
+    }
+
     if(indev->driver.type != LV_INDEV_TYPE_POINTER && indev->driver.type != LV_INDEV_TYPE_BUTTON) {
         point->x = 0;
         point->y = 0;
@@ -362,6 +368,10 @@ static void indev_keypad_proc(lv_indev_t * i, lv_indev_data_t * data)
     if(data->state == LV_INDEV_STATE_PR &&
             i->proc.last_state == LV_INDEV_STATE_REL) {
         i->proc.pr_timestamp = lv_tick_get();
+        lv_obj_t * focused = lv_group_get_focused(i->group);
+        if(focused) {
+            focused->signal_func(focused, LV_SIGNAL_PRESSED, indev_act);
+        }
     }
     /*Pressing*/
     else if(data->state == LV_INDEV_STATE_PR && i->proc.last_state == LV_INDEV_STATE_PR) {
@@ -579,7 +589,10 @@ static void indev_proc_press(lv_indev_proc_t * proc)
             if(proc->reset_query != 0) return;
         }
 
-        if(pr_obj != NULL) {
+        proc->act_obj = pr_obj;           /*Save the pressed object*/
+        proc->last_obj = proc->act_obj;   /*Refresh the last_obj*/
+
+        if(proc->act_obj != NULL) {
             /* Save the time when the obj pressed.
              * It is necessary to count the long press time.*/
             proc->pr_timestamp = lv_tick_get();
@@ -588,9 +601,11 @@ static void indev_proc_press(lv_indev_proc_t * proc)
             proc->drag_in_prog = 0;
             proc->drag_sum.x = 0;
             proc->drag_sum.y = 0;
+            proc->vect.x = 0;
+            proc->vect.y = 0;
 
             /*Search for 'top' attribute*/
-            lv_obj_t * i = pr_obj;
+            lv_obj_t * i = proc->act_obj;
             lv_obj_t * last_top = NULL;
             while(i != NULL) {
                 if(i->top != 0) last_top = i;
@@ -606,13 +621,10 @@ static void indev_proc_press(lv_indev_proc_t * proc)
             }
 
             /*Send a signal about the press*/
-            pr_obj->signal_func(pr_obj, LV_SIGNAL_PRESSED, indev_act);
+            proc->act_obj->signal_func(proc->act_obj, LV_SIGNAL_PRESSED, indev_act);
             if(proc->reset_query != 0) return;
         }
     }
-
-    proc->act_obj = pr_obj;            /*Save the pressed object*/
-    proc->last_obj = proc->act_obj;   /*Refresh the last_obj*/
 
     /*Calculate the vector*/
     proc->vect.x = proc->act_point.x - proc->last_point.x;
@@ -813,11 +825,12 @@ static void indev_drag(lv_indev_proc_t * state)
 
     if(lv_obj_get_drag(drag_obj) == false) return;
 
-    /*If still there is no drag then count the movement*/
-    if(state->drag_range_out == 0) {
-        state->drag_sum.x += state->vect.x;
-        state->drag_sum.y += state->vect.y;
+    /*Count the movement by drag*/
+    state->drag_sum.x += state->vect.x;
+    state->drag_sum.y += state->vect.y;
 
+    /*Enough move?*/
+    if(state->drag_range_out == 0) {
         /*If a move is greater then LV_DRAG_LIMIT then begin the drag*/
         if(LV_MATH_ABS(state->drag_sum.x) >= LV_INDEV_DRAG_LIMIT ||
                 LV_MATH_ABS(state->drag_sum.y) >= LV_INDEV_DRAG_LIMIT) {
@@ -890,14 +903,19 @@ static void indev_drag_throw(lv_indev_proc_t * state)
 
     if(state->vect.x != 0 ||
             state->vect.y != 0) {
-        /*Get the coordinates  and modify them*/
+        /*Get the coordinates and modify them*/
+        lv_area_t coords_ori;
+        lv_obj_get_coords(drag_obj, &coords_ori);
         lv_coord_t act_x = lv_obj_get_x(drag_obj) + state->vect.x;
         lv_coord_t act_y = lv_obj_get_y(drag_obj) + state->vect.y;
         lv_obj_set_pos(drag_obj, act_x, act_y);
 
+        lv_area_t coord_new;
+        lv_obj_get_coords(drag_obj, &coord_new);
+
         /*If non of the coordinates are changed then do not continue throwing*/
-        if((lv_obj_get_x(drag_obj) != act_x || state->vect.x == 0) &&
-                (lv_obj_get_y(drag_obj) != act_y || state->vect.y == 0)) {
+        if((coords_ori.x1 == coord_new.x1 || state->vect.x == 0) &&
+                (coords_ori.y1 == coord_new.y1 || state->vect.y == 0)) {
             state->drag_in_prog = 0;
             state->vect.x = 0;
             state->vect.y = 0;

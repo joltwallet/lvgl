@@ -109,10 +109,6 @@ void lv_group_add_obj(lv_group_t * group, lv_obj_t * obj)
      * In this case automatically activate it*/
     if(lv_ll_get_head(&group->obj_ll) == next) {
         lv_group_refocus(group);
-        if(!lv_group_get_editing(group))
-        {
-        	lv_group_set_editing(group, true);
-        }
     }
 }
 
@@ -126,8 +122,16 @@ void lv_group_remove_obj(lv_obj_t * obj)
     if(g == NULL) return;
     if(g->obj_focus == NULL) return;        /*Just to be sure (Not possible if there is at least one object in the group)*/
 
+    /*Focus on the next object*/
     if(*g->obj_focus == obj) {
-        lv_group_refocus(g);
+        /*If this is the only object in the group then focus to nothing.*/
+        if(lv_ll_get_head(&g->obj_ll) == g->obj_focus && lv_ll_get_tail(&g->obj_ll) == g->obj_focus) {
+            (*g->obj_focus)->signal_func(*g->obj_focus, LV_SIGNAL_DEFOCUS, NULL);
+        }
+        /*If there more objects in the group then focus to the next/prev object*/
+        else {
+            lv_group_refocus(g);
+        }
     }
 
     /* If the focuses object is still the same then it was the only object in the group but it will be deleted.
