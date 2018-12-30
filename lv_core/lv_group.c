@@ -90,7 +90,7 @@ void lv_group_add_obj(lv_group_t * group, lv_obj_t * obj)
 {
     if(group == NULL) return;
 
-    /*If the object is already in a group and focused then defocuse it*/
+    /*If the object is already in a group and focused then defocus it*/
     if(obj->group_p) {
         if(lv_obj_is_focused(obj)) {
             lv_group_refocus(obj->group_p);
@@ -204,7 +204,10 @@ void lv_group_focus_next(lv_group_t * group)
     if(group->obj_focus == NULL) obj_next = lv_ll_get_head(&group->obj_ll);
     else obj_next = lv_ll_get_next(&group->obj_ll, group->obj_focus);
 
-    if(obj_next == NULL) obj_next = lv_ll_get_head(&group->obj_ll);
+    if(obj_next == NULL) {
+        if(group->wrap) obj_next = lv_ll_get_head(&group->obj_ll);
+        else obj_next = lv_ll_get_tail(&group->obj_ll);
+    }
     group->obj_focus = obj_next;
 
     if(group->obj_focus) {
@@ -232,7 +235,10 @@ void lv_group_focus_prev(lv_group_t * group)
     if(group->obj_focus == NULL) obj_next = lv_ll_get_tail(&group->obj_ll);
     else obj_next = lv_ll_get_prev(&group->obj_ll, group->obj_focus);
 
-    if(obj_next == NULL) obj_next = lv_ll_get_tail(&group->obj_ll);
+    if(obj_next == NULL) {
+        if(group->wrap) obj_next = lv_ll_get_tail(&group->obj_ll);
+        else  obj_next = lv_ll_get_head(&group->obj_ll);
+    }
     group->obj_focus = obj_next;
 
     if(group->obj_focus != NULL) {
@@ -334,10 +340,26 @@ void lv_group_set_refocus_policy(lv_group_t * group, lv_group_refocus_policy_t p
 }
 
 static void lv_group_refocus(lv_group_t *g) {
-	if(g->refocus_policy == LV_GROUP_REFOCUS_POLICY_NEXT)
-		lv_group_focus_next(g);
-	else if(g->refocus_policy == LV_GROUP_REFOCUS_POLICY_PREV)
-		lv_group_focus_prev(g);
+    /*Refocus must temporarily allow wrapping to work correctly*/
+    uint8_t temp_wrap = g->wrap;
+    g->wrap = 1;
+
+    if(g->refocus_policy == LV_GROUP_REFOCUS_POLICY_NEXT)
+        lv_group_focus_next(g);
+    else if(g->refocus_policy == LV_GROUP_REFOCUS_POLICY_PREV)
+        lv_group_focus_prev(g);
+    /*Restore wrap property*/
+    g->wrap = temp_wrap;
+}
+
+/**
+ * Set whether focus next/prev will allow wrapping from first->last or last->first.
+ * @param group pointer to group
+ * @param en: true: enable `click_focus`
+ */
+void lv_group_set_wrap(lv_group_t * group, bool en)
+{
+    group->wrap = en ? 1 : 0;
 }
 
 /**
@@ -351,11 +373,9 @@ lv_style_t * lv_group_mod_style(lv_group_t * group, const lv_style_t * style)
     lv_style_copy(&group->style_tmp, style);
 
     if(group->editing) {
-        if(group->style_mod_edit != NULL) group->style_mod_edit(&group->style_tmp);
-        else style_mod_edit_def(&group->style_tmp);
+        if(group->style_mod_edit) group->style_mod_edit(&group->style_tmp);
     } else {
-        if(group->style_mod != NULL) group->style_mod(&group->style_tmp);
-        else style_mod_def(&group->style_tmp);
+        if(group->style_mod) group->style_mod(&group->style_tmp);
     }
     return &group->style_tmp;
 }
@@ -426,6 +446,17 @@ bool lv_group_get_click_focus(const lv_group_t * group)
 {
     if(!group) return false;
     return group->click_focus ? true : false;
+}
+
+/**
+ * Get whether focus next/prev will allow wrapping from first->last or last->first object.
+ * @param group pointer to group
+ * @param en: true: wrapping enabled; false: wrapping disabled
+ */
+bool lv_group_get_wrap(lv_group_t * group)
+{
+    if(!group) return false;
+    return group->wrap ? true : false;
 }
 
 /**********************

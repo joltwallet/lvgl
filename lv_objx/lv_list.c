@@ -131,7 +131,6 @@ lv_obj_t * lv_list_create(lv_obj_t * par, const lv_obj_t * copy)
             if(copy_img) img_src = lv_img_get_src(copy_img);
 #endif
             lv_list_add(new_list, img_src, lv_list_get_btn_text(copy_btn), lv_btn_get_action(copy_btn, LV_BTN_ACTION_CLICK));
-            // new_btn = lv_btn_create(new_list, copy_btn);
             copy_btn = lv_list_get_next_btn(copy, copy_btn);
         }
 
@@ -220,11 +219,12 @@ lv_obj_t * lv_list_add(lv_obj_t * list, const void * img_src, const char * txt, 
     }
 #endif
     if(txt != NULL) {
+        lv_coord_t btn_hor_pad = ext->styles_btn[LV_BTN_STYLE_REL]->body.padding.hor;
         lv_obj_t * label = lv_label_create(liste, NULL);
         lv_label_set_text(label, txt);
         lv_obj_set_click(label, false);
         lv_label_set_long_mode(label, LV_LABEL_LONG_ROLL);
-        lv_obj_set_width(label, liste->coords.x2 - label->coords.x1);
+        lv_obj_set_width(label, liste->coords.x2 - label->coords.x1 - btn_hor_pad);
         if(label_signal == NULL) label_signal = lv_obj_get_signal_func(label);
     }
 

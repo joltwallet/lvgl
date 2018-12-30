@@ -136,7 +136,7 @@ void lv_indev_enable(lv_hal_indev_type_t type, bool enable)
  */
 void lv_indev_set_cursor(lv_indev_t * indev, lv_obj_t * cur_obj)
 {
-    if(indev->driver.type != LV_INDEV_TYPE_POINTER && indev->driver.type != LV_INDEV_TYPE_BUTTON) return;
+    if(indev->driver.type != LV_INDEV_TYPE_POINTER) return;
 
     indev->cursor = cur_obj;
     lv_obj_set_parent(indev->cursor, lv_layer_sys());
@@ -164,6 +164,16 @@ void lv_indev_set_group(lv_indev_t * indev, lv_group_t * group)
 void lv_indev_set_button_points(lv_indev_t * indev, lv_point_t * points)
 {
     if(indev->driver.type == LV_INDEV_TYPE_BUTTON) indev->btn_points = points;
+}
+
+/**
+ * Set feedback callback for indev.
+ * @param indev pointer to an input device
+ * @param feedback feedback callback
+ */
+void lv_indev_set_feedback(lv_indev_t *indev, lv_indev_feedback_t feedback)
+{
+	indev->feedback = feedback;
 }
 
 /**
@@ -247,6 +257,16 @@ uint32_t lv_indev_get_inactive_time(const lv_indev_t * indev)
     }
 
     return t;
+}
+
+/**
+ * Get feedback callback for indev.
+ * @param indev pointer to an input device
+ * @return feedback callback
+ */
+lv_indev_feedback_t lv_indev_get_feedback(const lv_indev_t *indev)
+{
+	return indev->feedback;
 }
 
 /**

@@ -81,7 +81,7 @@ void lv_init(void)
     /*Init. the sstyles*/
     lv_style_init();
 
-    /*Init. the screen refresh system*/
+    /*Initialize the screen refresh system*/
     lv_refr_init();
 
     /*Create the default screen*/
@@ -140,6 +140,15 @@ lv_obj_t * lv_obj_create(lv_obj_t * parent, const  lv_obj_t * copy)
         new_obj->coords.x2 = LV_HOR_RES - 1;
         new_obj->coords.y2 = LV_VER_RES - 1;
         new_obj->ext_size = 0;
+
+        /*Init realign*/
+#if LV_OBJ_REALIGN
+        new_obj->realign.align = LV_ALIGN_CENTER;
+        new_obj->realign.xofs = 0;
+        new_obj->realign.yofs = 0;
+        new_obj->realign.base = NULL;
+        new_obj->realign.auto_realign = 0;
+#endif
 
         /*Set the default styles*/
         lv_theme_t * th = lv_theme_get_current();
@@ -256,6 +265,16 @@ lv_obj_t * lv_obj_create(lv_obj_t * parent, const  lv_obj_t * copy)
 #if LV_OBJ_FREE_PTR != 0
         new_obj->free_ptr = copy->free_ptr;
 #endif
+
+        /*Copy realign*/
+#if LV_OBJ_REALIGN
+        new_obj->realign.align = copy->realign.align;
+        new_obj->realign.xofs = copy->realign.xofs;
+        new_obj->realign.yofs = copy->realign.yofs;
+        new_obj->realign.base = copy->realign.base;
+        new_obj->realign.auto_realign = copy->realign.auto_realign;
+#endif
+
         /*Set attributes*/
         new_obj->click = copy->click;
         new_obj->drag = copy->drag;
@@ -263,6 +282,7 @@ lv_obj_t * lv_obj_create(lv_obj_t * parent, const  lv_obj_t * copy)
         new_obj->drag_parent = copy->drag_parent;
         new_obj->hidden = copy->hidden;
         new_obj->top = copy->top;
+
         new_obj->opa_scale_en = copy->opa_scale_en;
         new_obj->protect = copy->protect;
         new_obj->opa_scale = copy->opa_scale;
@@ -1567,7 +1587,7 @@ bool lv_obj_get_drag(const lv_obj_t * obj)
 }
 
 /**
- * Get the drag thow enable attribute of an object
+ * Get the drag throw enable attribute of an object
  * @param obj pointer to an object
  * @return true: drag throw is enabled
  */
@@ -1810,6 +1830,14 @@ static lv_res_t lv_obj_signal(lv_obj_t * obj, lv_signal_t sign, void * param)
     lv_res_t res = LV_RES_OK;
 
     lv_style_t * style = lv_obj_get_style(obj);
+
+    lv_indev_t *indev_act = lv_indev_get_act();
+
+    if(sign > _LV_SIGNAL_FEEDBACK_SECTION_START && sign < _LV_SIGNAL_FEEDBACK_SECTION_END) {
+		if(indev_act != NULL && indev_act->feedback != NULL)
+			indev_act->feedback(indev_act, sign);
+    }
+
     if(sign == LV_SIGNAL_CHILD_CHG) {
         /*Return 'invalid' if the child change signal is not enabled*/
         if(lv_obj_is_protected(obj, LV_PROTECT_CHILD_CHG) != false) res = LV_RES_INV;
